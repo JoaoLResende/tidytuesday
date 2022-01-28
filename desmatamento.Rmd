@@ -1,0 +1,86 @@
+---
+title: "tidytuesday 06-04"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+library(RColorBrewer)
+tt <- tt_load("2021-04-06")
+
+```
+
+```{r}
+df <-tt$brazil_loss
+
+
+df_brazil <- df%>%
+  pivot_longer(cols = commercial_crops:small_scale_clearing, names_to = "tipo", values_to = "area")
+```
+
+
+```{r}
+df_brazil%>%
+  group_by(year)%>%
+  summarise(area = sum(area))%>%
+  ungroup()%>%
+  ggplot(aes(x = year, y = area, fill = "green"))+
+  geom_area()+
+  labs(title = "Área desmatada no Brazil por ano?",
+       subtitle = "Em milhões de hectares",
+       x= "Ano",
+       y= "Hectares")+ scale_y_continuous(labels = scales::comma)+
+  theme_fivethirtyeight()+
+  theme(axis.title = element_text())+
+  scale_color_brewer(palette = "Set1")
+
+
+```
+
+
+```{r}
+library(wesanderson)
+
+labs <- expression("Fogo","Extração Seletiva Madeira", "Outros", "Plantações","Clareira", "Pasto")
+a <- df_brazil%>%
+  mutate(tipo = fct_lump( tipo, w = area, 5))%>%
+   group_by(year)%>%
+  mutate(percent = area/sum(area))%>%
+   group_by(year, tipo)%>%
+  summarise( percent = sum(percent),
+             .groups = "drop")%>%
+  mutate( tipo = fct_reorder(tipo, percent))%>%
+  ggplot(aes(x = year , y = percent, fill = tipo))+
+  geom_area() +
+  labs(title = "O que mais causou desmatamento no Brasil ao longo dos anos?",
+       subtitle = "Quanto cada fator foi responsável pelo desmatamento",
+       x= "Ano",
+       y= "Porcentagem",
+       fill = "Causador")+ 
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  theme_minimal()+
+  theme(axis.title = element_text())+
+  scale_fill_brewer(palette = "Set2")
+
+plot(a)
+
+
+```
+
+```{r}
+df_global%>%
+  filter(year == "2020",
+         code != "",
+         entity != "World")%>%
+  top_n(5) 
+```
+
+```{r}
+df_global%>%
+  filter(entity %in% c("Brazil", "Canda", "China", "Russia", "United States"))%>%
+  ggplot(aes(x = year, y = forest_area, color = entity))+
+  geom_line()
+```
+
